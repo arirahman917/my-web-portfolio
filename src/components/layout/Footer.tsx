@@ -165,7 +165,7 @@ export function Footer() {
         <div className="my-auto flex flex-col items-start py-4 text-left">
           <a
             href={SOCIAL_LINKS.emailHref}
-            className="group inline-flex flex-wrap items-center gap-x-[0.34em] gap-y-2 text-[length:clamp(2.25rem,min(6.8vw,12dvh),6rem)] leading-[0.95] font-semibold tracking-[-0.015em] text-lightblue uppercase transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lightblue"
+            className="group inline-flex flex-nowrap items-center gap-x-[0.3em] text-[length:clamp(1.625rem,min(6.8vw,12dvh),6rem)] leading-[0.95] font-semibold tracking-[-0.015em] whitespace-nowrap text-lightblue uppercase transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lightblue"
           >
             <span className="[text-shadow:0_0_36px_rgba(234,240,255,0.16)]">
               {NAV_COPY.footerHeadline[locale]}
