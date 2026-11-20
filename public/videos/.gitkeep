@@ -1,0 +1,2 @@
+# Place optional compressed .mp4 / .webm loop assets here.
+# Referenced via /videos/<filename> in Next.js components.

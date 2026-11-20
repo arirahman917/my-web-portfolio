@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary-black: #080b18;
+  --color-primary-blue: #1235d8;
+  --color-primary-blue-contrast: #2855ff;
+  --color-primary-purple: #6d8bff;
+  --color-lightblue: #eaf0ff;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-blur-black: rgba(58, 58, 58, 0.3);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-primary-black);
+    color: var(--color-white);
+  }
+
+  body {
+    background-color: var(--color-primary-black);
+    color: var(--color-white);
+    font-family: var(--font-sans);
+    overflow-x: clip;
+  }
+
+  em {
+    font-style: italic;
+  }
+}
+
+/* Figma radial-black overlay (25% layer opacity across stops) */
+.bg-radial-black {
+  background-image: radial-gradient(
+    circle at center,
+    rgba(157, 157, 157, 0) 0%,
+    rgba(131, 131, 131, 0.075) 25%,
+    rgba(106, 106, 106, 0.145) 50%,
+    rgba(55, 55, 55, 0.25) 100%
+  );
+}
+
+/* Figma blur-black glassmorphic surface */
+.glass-blur-black {
+  background-color: rgba(58, 58, 58, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Preloader bilingual text visibility before React hydration */
+.preloader-tagline-en {
+  display: none;
+}
+
+html[data-porto-lang="en"] .preloader-tagline-id {
+  display: none;
+}
+
+html[data-porto-lang="en"] .preloader-tagline-en {
+  display: inline;
+}
