@@ -21,20 +21,28 @@ export function ProjectResultCard({ project }: ProjectResultCardProps) {
   const plainTitle = extractPlainText(project.title[locale]);
 
   return (
-    <div className="relative mx-auto mt-14 w-full sm:mt-16 md:my-10 lg:my-14">
+    <div
+      data-project-result-card
+      className="relative mx-auto mt-14 w-full sm:mt-16 md:my-10 lg:my-14"
+    >
       {/* Wide rounded banner backdrop (`result-banner.webp`) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl border border-white/10 bg-primary-black sm:rounded-[26px]">
-        <Image
-          src={project.resultBannerImage}
-          alt={
-            locale === "id"
-              ? `Banner hasil proyek ${plainTitle}`
-              : `Result banner for ${plainTitle}`
-          }
-          fill
-          sizes="(max-width: 1040px) 92vw, 1040px"
-          className="object-cover object-center select-none"
-        />
+        <div
+          data-project-result-bg
+          className="absolute inset-0 will-change-transform"
+        >
+          <Image
+            src={project.resultBannerImage}
+            alt={
+              locale === "id"
+                ? `Banner hasil proyek ${plainTitle}`
+                : `Result banner for ${plainTitle}`
+            }
+            fill
+            sizes="(max-width: 1040px) 92vw, 1040px"
+            className="object-cover object-center select-none"
+          />
+        </div>
         <div
           aria-hidden="true"
           className="absolute inset-0 bg-[#080B18]/65 bg-linear-to-r from-[#080B18]/40 via-[#080B18]/65 to-[#080B18]/80"
@@ -43,7 +51,10 @@ export function ProjectResultCard({ project }: ProjectResultCardProps) {
 
       {/* Foreground grid: protruding phone cutout (left) + outcome copy & pills (right) */}
       <div className="relative z-10 grid grid-cols-1 items-center gap-6 px-6 pt-4 pb-8 sm:px-8 sm:pb-10 md:grid-cols-[250px_1fr] md:gap-8 md:px-10 md:py-8 lg:grid-cols-[295px_1fr] lg:gap-10 lg:px-12 lg:py-10">
-        <div className="relative mx-auto -mt-14 w-[185px] sm:w-[210px] md:mx-0 md:my-[-5.5rem] md:-ml-4 md:w-full lg:my-[-6.25rem]">
+        <div
+          data-project-result-object
+          className="relative mx-auto -mt-14 w-[185px] will-change-transform sm:w-[210px] md:mx-0 md:my-[-5.5rem] md:-ml-4 md:w-full lg:my-[-6.25rem]"
+        >
           <Image
             src={project.resultObjectImage}
             alt={

@@ -1,14 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { PROJECT_SHARED_COPY, PROJECTS } from "@/data/projects";
 import type { TextSegment } from "@/data/types";
 import { RichText } from "@/components/ui/RichText";
+import { ProjectCursorVideo } from "./ProjectCursorVideo";
 import {
   gsap,
+  ScrollSmoother,
   ScrollTrigger,
   registerGsapPlugins,
   useGSAP,
@@ -20,6 +22,12 @@ function extractPlainText(segments: TextSegment[]): string {
   return segments
     .map((segment) => (typeof segment === "string" ? segment : segment.text))
     .join("");
+}
+
+function normalizeWheelDelta(delta: number, deltaMode: number): number {
+  if (deltaMode === 1) return delta * 16;
+  if (deltaMode === 2) return delta * window.innerHeight;
+  return delta;
 }
 
 function DiagonalArrowIcon({ direction }: { direction: "down-left" | "up-right" }) {
@@ -56,8 +64,8 @@ function DiagonalArrowIcon({ direction }: { direction: "down-left" | "up-right" 
 /**
  * Landing Projects showcase (`#projects`).
  * Starts on the full-viewport `PROYEK` / `PROJECTS` canvas (`proyek.png`),
- * pins to the viewport, and smoothly scrolls horizontally through the 4
- * project banners (`LP_kasir`, `LP_landeuh`, `LP_ais`, `LP_webgis`).
+ * pins to the viewport, and glides horizontally with subtle cover parallax
+ * through the 4 project banners (`LP_kasir`, `LP_landeuh`, `LP_ais`, `LP_webgis`).
  */
 export function ProjectsSection() {
   const { locale } = useLanguage();
@@ -65,7 +73,17 @@ export function ProjectsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const introTitleRef = useRef<HTMLHeadingElement>(null);
   const horizontalTriggerRef = useRef<ScrollTrigger | null>(null);
+  const trackListenersRef = useRef<Set<() => void>>(new Set());
+
+  const subscribeTrackUpdate = useCallback((listener: () => void) => {
+    const listeners = trackListenersRef.current;
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
 
   useGSAP(
     () => {
@@ -75,36 +93,160 @@ export function ProjectsSection() {
       const trackEl = trackRef.current;
       if (!sectionEl || !trackEl) return;
 
-      // Generous distance for a slow, silky, lightweight scroll
-      const getScrollDistance = () => (TOTAL_SLIDES - 1) * window.innerHeight * 1.35;
+      if (introTitleRef.current) {
+        gsap.fromTo(
+          introTitleRef.current,
+          { y: 28, scale: 0.94 },
+          {
+            y: 0,
+            scale: 1,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: sectionEl,
+              start: "top bottom",
+              end: "top top",
+              scrub: 0.12,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
+
+      const getScrollDistance = () =>
+        (TOTAL_SLIDES - 1) * window.innerHeight * 1.35;
 
       const horizontalTween = gsap.to(trackEl, {
         x: () => -(trackEl.scrollWidth - window.innerWidth),
         ease: "none",
+        force3D: true,
+        onUpdate: () => {
+          trackListenersRef.current.forEach((listener) => listener());
+        },
         scrollTrigger: {
           trigger: sectionEl,
           pin: true,
           pinSpacing: true,
           start: "top top",
           end: () => `+=${getScrollDistance()}`,
-          scrub: 1.2,
+          scrub: 0.15,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          onToggle: (self) => {
-            trackEl.style.willChange = self.isActive ? "transform" : "auto";
-          },
         },
+      });
+
+      // Subtle horizontal parallax window on each full-bleed project banner
+      const projectImageWraps = gsap.utils.toArray<HTMLElement>(
+        "[data-project-image]",
+        trackEl
+      );
+      projectImageWraps.forEach((imgWrap) => {
+        const slideEl = imgWrap.closest<HTMLElement>("[data-project-slug]");
+        if (!slideEl) return;
+        gsap.fromTo(
+          imgWrap,
+          { xPercent: -5, scale: 1.09 },
+          {
+            xPercent: 5,
+            scale: 1.09,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: slideEl,
+              containerAnimation: horizontalTween,
+              start: "left right",
+              end: "right left",
+              scrub: true,
+            },
+          }
+        );
       });
 
       horizontalTriggerRef.current = horizontalTween.scrollTrigger ?? null;
 
       return () => {
         horizontalTriggerRef.current = null;
-        trackEl.style.willChange = "";
       };
     },
     { scope: sectionRef }
   );
+
+  // Support two-finger horizontal touchpad scroll (WheelEvent deltaX) while keeping vertical scroll intact
+  useEffect(() => {
+    const viewportEl = viewportRef.current;
+    const trackEl = trackRef.current;
+    if (!viewportEl || !trackEl) return;
+
+    let wheelIdleTimer: number | null = null;
+    let wheelTargetY: number | null = null;
+
+    const handleWheel = (event: WheelEvent) => {
+      const trigger = horizontalTriggerRef.current;
+      if (!trigger || trigger.end <= trigger.start) return;
+
+      const rect = viewportEl.getBoundingClientRect();
+      const isStagePinned =
+        trigger.isActive ||
+        (rect.top <= 4 && rect.bottom >= window.innerHeight - 4);
+      if (!isStagePinned) return;
+
+      const dx = normalizeWheelDelta(event.deltaX, event.deltaMode);
+      const dy = normalizeWheelDelta(event.deltaY, event.deltaMode);
+
+      if (Math.abs(dx) <= Math.abs(dy) || dx === 0) {
+        wheelTargetY = null;
+        return;
+      }
+
+      const horizontalRange = trackEl.scrollWidth - window.innerWidth;
+      if (horizontalRange <= 0) return;
+
+      event.preventDefault();
+
+      const smoother = ScrollSmoother.get();
+      const currentScrollY = smoother ? smoother.scrollTop() : window.scrollY;
+      const scrollPerHorizontalPx =
+        (trigger.end - trigger.start) / horizontalRange;
+      const clampedOrigin = gsap.utils.clamp(
+        trigger.start,
+        trigger.end,
+        wheelTargetY ?? currentScrollY
+      );
+
+      if (dx < 0 && clampedOrigin <= trigger.start) return;
+      if (dx > 0 && clampedOrigin >= trigger.end) return;
+
+      const nextY = gsap.utils.clamp(
+        trigger.start,
+        trigger.end,
+        clampedOrigin + dx * scrollPerHorizontalPx
+      );
+      wheelTargetY = nextY;
+
+      if (smoother) {
+        smoother.scrollTop(nextY);
+      } else {
+        window.scrollTo({ top: nextY, behavior: "instant" });
+      }
+
+      if (wheelIdleTimer !== null) {
+        window.clearTimeout(wheelIdleTimer);
+      }
+      wheelIdleTimer = window.setTimeout(() => {
+        wheelTargetY = null;
+        wheelIdleTimer = null;
+      }, 120);
+    };
+
+    viewportEl.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      if (wheelIdleTimer !== null) {
+        window.clearTimeout(wheelIdleTimer);
+      }
+      viewportEl.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
 
   const handleSlideFocus = (slideIndex: number, target: HTMLElement) => {
     if (!target.matches(":focus-visible")) return;
@@ -117,7 +259,12 @@ export function ProjectsSection() {
 
     const targetY =
       trigger.start + (trigger.end - trigger.start) * targetProgress;
-    window.scrollTo({ top: targetY, behavior: "smooth" });
+    const smoother = ScrollSmoother.get();
+    if (smoother) {
+      smoother.scrollTo(targetY, true);
+    } else {
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    }
   };
 
   const visitLabel = PROJECT_SHARED_COPY.landingVisitCta[locale].replace(
@@ -134,11 +281,11 @@ export function ProjectsSection() {
       ref={sectionRef}
       id="projects"
       aria-labelledby="projects-section-heading"
-      className="relative bg-primary-black text-lightblue"
+      className="relative z-20 bg-primary-black text-lightblue"
     >
       <div
         ref={viewportRef}
-        className="relative h-screen h-[100dvh] w-full overflow-hidden bg-primary-black"
+        className="relative h-screen h-[100dvh] w-full overflow-hidden overscroll-x-contain bg-primary-black"
       >
         <div
           ref={trackRef}
@@ -148,8 +295,9 @@ export function ProjectsSection() {
           {/* Slide 1: Full-viewport PROYEK / PROJECTS canvas (proyek.png) */}
           <div className="relative flex h-full w-screen shrink-0 items-center justify-center bg-primary-black px-6 select-none">
             <h2
+              ref={introTitleRef}
               id="projects-section-heading"
-              className="text-center text-[clamp(3.5rem,14vw,14rem)] leading-none font-medium tracking-[-0.02em] text-lightblue uppercase"
+              className="text-center text-[clamp(3.5rem,14vw,14rem)] leading-none font-medium tracking-[-0.02em] text-lightblue uppercase will-change-transform"
             >
               {PROJECT_SHARED_COPY.landingIntroTitle[locale]}
             </h2>
@@ -163,18 +311,24 @@ export function ProjectsSection() {
             return (
               <article
                 key={project.slug}
+                data-project-slug={project.slug}
                 className="relative h-full w-screen shrink-0 overflow-hidden bg-primary-black"
               >
-                <Image
-                  src={project.landingImage}
-                  alt={project.landingAlt[locale]}
-                  fill
-                  priority={slideIndex <= 2}
-                  loading={slideIndex <= 2 ? "eager" : "lazy"}
-                  decoding="async"
-                  sizes="100vw"
-                  className="object-cover object-center select-none"
-                />
+                <div
+                  data-project-image
+                  className="absolute inset-0 will-change-transform"
+                >
+                  <Image
+                    src={project.landingImage}
+                    alt={project.landingAlt[locale]}
+                    fill
+                    priority={slideIndex <= 2}
+                    loading={slideIndex <= 2 ? "eager" : "lazy"}
+                    decoding="async"
+                    sizes="100vw"
+                    className="object-cover object-center select-none"
+                  />
+                </div>
 
                 {/* Bottom contrast scrim & subtle radial-black atmosphere */}
                 <div
@@ -198,6 +352,7 @@ export function ProjectsSection() {
                         href={project.visitUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        data-project-cta
                         aria-label={`${visitLabel} — ${plainTitle}`}
                         onFocus={(event) =>
                           handleSlideFocus(slideIndex, event.currentTarget)
@@ -210,6 +365,7 @@ export function ProjectsSection() {
 
                       <Link
                         href={project.route}
+                        data-project-cta
                         aria-label={`${approachLabel} — ${plainTitle}`}
                         onFocus={(event) =>
                           handleSlideFocus(slideIndex, event.currentTarget)
@@ -226,6 +382,14 @@ export function ProjectsSection() {
             );
           })}
         </div>
+
+        <ProjectCursorVideo
+          sectionRef={sectionRef}
+          viewportRef={viewportRef}
+          trackRef={trackRef}
+          projects={PROJECTS}
+          subscribeTrackUpdate={subscribeTrackUpdate}
+        />
       </div>
     </section>
   );

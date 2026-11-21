@@ -44,8 +44,7 @@ export const PROJECT_LINKS = {
 export const ACHIEVEMENT_LINKS = {
   joints: {
     web: "https://cocokin-joints.vercel.app/",
-    video:
-      "https://drive.google.com/file/d/1syZqVgFra3Y9HMICchz30dckLL_WHoGM/view?usp=sharing",
+    video: "https://youtu.be/4Rd8atwJtD8?si=h3NIOB0fBRZkRrwq",
     figma:
       "https://www.figma.com/design/7cjqnxwFVnIH22ba3Kof7Z/FIGMA-JOINTS?node-id=18-885&t=K86xn5ZqzloCqCOm-1",
     repo: "https://github.com/Daliondroid/FajarWasHere-Joints",

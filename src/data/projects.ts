@@ -69,6 +69,11 @@ export const PROJECTS: ProjectData[] = [
       id: "Pratinjau proyek Aplikasi Kasir Offline-First Toko All Rahman",
       en: "Toko All Rahman Offline-First POS App project preview",
     },
+    previewVideo: {
+      src: "/videos/kasir.webm",
+      width: 480,
+      height: 854,
+    },
     visitUrl: PROJECT_LINKS.kasir.visit,
     title: {
       id: [
@@ -361,6 +366,11 @@ export const PROJECTS: ProjectData[] = [
     landingAlt: {
       id: "Pratinjau proyek Website Pemesanan Penginapan Landeuh Village Riverside",
       en: "Landeuh Village Riverside Lodging Booking Website preview",
+    },
+    previewVideo: {
+      src: "/videos/landeuh.webm",
+      width: 960,
+      height: 480,
     },
     visitUrl: PROJECT_LINKS.landeuh.visit,
     title: {
@@ -699,6 +709,11 @@ export const PROJECTS: ProjectData[] = [
       id: "Pratinjau proyek Website Profil dan Sistem Pendaftaran Asrama IPB Sukasari",
       en: "Asrama IPB Sukasari Profile Website and Registration System preview",
     },
+    previewVideo: {
+      src: "/videos/ais.webm",
+      width: 960,
+      height: 480,
+    },
     visitUrl: PROJECT_LINKS.ais.visit,
     title: {
       id: [
@@ -941,6 +956,11 @@ export const PROJECTS: ProjectData[] = [
     landingAlt: {
       id: "Pratinjau proyek WebGIS Persebaran dan Analisis Lokasi UMKM RINTIK",
       en: "RINTIK SME Distribution & Location Analysis WebGIS preview",
+    },
+    previewVideo: {
+      src: "/videos/webgis.webm",
+      width: 960,
+      height: 480,
     },
     visitUrl: PROJECT_LINKS.webgis.visit,
     title: {

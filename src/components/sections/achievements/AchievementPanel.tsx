@@ -1,11 +1,18 @@
 "use client";
 
+import { useRef } from "react";
 import Image from "next/image";
 import { AnimatePresence, m } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import type { AchievementData, AchievementDetailBlock } from "@/data/types";
 import { ActionPill } from "@/components/ui/ActionPill";
 import { RichText } from "@/components/ui/RichText";
+import {
+  gsap,
+  ScrollTrigger,
+  registerGsapPlugins,
+  useGSAP,
+} from "@/components/motion/gsapConfig";
 
 interface AchievementPanelProps {
   achievement: AchievementData;
@@ -51,7 +58,7 @@ function groupBlocksIntoRows(blocks: AchievementDetailBlock[]): ZigZagRow[] {
 /**
  * Individual numbered achievement accordion card (`1`–`4`) on `#EAF0FF` (`bg-lightblue`).
  * Renders a compact numbered bar when collapsed and unfurls the `_LP.webp` cover banner,
- * period badge, and zig-zag media/text grid with a slow linear transition when expanded.
+ * period badge, and zig-zag media/text grid with smooth scroll parallax when expanded.
  */
 export function AchievementPanel({
   achievement,
@@ -59,12 +66,101 @@ export function AchievementPanel({
   onToggle,
 }: AchievementPanelProps) {
   const { locale } = useLanguage();
+  const panelRef = useRef<HTMLElement>(null);
   const rows = groupBlocksIntoRows(achievement.detailBlocks);
   const panelId = `achievement-panel-${achievement.slug}`;
   const headerId = `achievement-header-${achievement.slug}`;
 
+  useGSAP(
+    () => {
+      registerGsapPlugins();
+
+      const panelEl = panelRef.current;
+      if (!panelEl || !isExpanded) return;
+
+      const bannerWrap = panelEl.querySelector<HTMLElement>(
+        "[data-ach-banner-wrap]"
+      );
+      const bannerImg = panelEl.querySelector<HTMLElement>(
+        "[data-ach-banner-img]"
+      );
+      if (bannerWrap && bannerImg) {
+        gsap.fromTo(
+          bannerImg,
+          { yPercent: -6, scale: 1.12 },
+          {
+            yPercent: 6,
+            scale: 1.12,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: bannerWrap,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
+
+      const rowNodes = gsap.utils.toArray<HTMLElement>(
+        "[data-ach-row]",
+        panelEl
+      );
+      rowNodes.forEach((rowEl) => {
+        const mediaCol = rowEl.querySelector<HTMLElement>("[data-ach-media]");
+        const copyCol = rowEl.querySelector<HTMLElement>("[data-ach-copy]");
+
+        if (mediaCol) {
+          gsap.fromTo(
+            mediaCol,
+            { y: 20 },
+            {
+              y: -20,
+              ease: "none",
+              force3D: true,
+              scrollTrigger: {
+                trigger: rowEl,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+                invalidateOnRefresh: true,
+              },
+            }
+          );
+        }
+
+        if (copyCol) {
+          gsap.fromTo(
+            copyCol,
+            { y: 10 },
+            {
+              y: -10,
+              ease: "none",
+              force3D: true,
+              scrollTrigger: {
+                trigger: rowEl,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+                invalidateOnRefresh: true,
+              },
+            }
+          );
+        }
+      });
+    },
+    {
+      scope: panelRef,
+      dependencies: [isExpanded, locale],
+      revertOnUpdate: true,
+    }
+  );
+
   return (
     <section
+      ref={panelRef}
       aria-labelledby={headerId}
       className="overflow-hidden rounded-[14px] bg-lightblue text-black shadow-[0_20px_60px_rgba(8,11,24,0.45)]"
     >
@@ -79,15 +175,23 @@ export function AchievementPanel({
             transition={EXPAND_TRANSITION}
             className="overflow-hidden"
           >
-            <div className="relative h-[180px] w-full overflow-hidden sm:h-[260px] lg:h-[310px]">
-              <Image
-                src={achievement.landingImage}
-                alt={achievement.landingAlt[locale]}
-                fill
-                sizes="(max-width: 1200px) 100vw, 1160px"
-                priority={achievement.indexNumber === 1}
-                className="object-cover object-center"
-              />
+            <div
+              data-ach-banner-wrap
+              className="relative h-[180px] w-full overflow-hidden sm:h-[260px] lg:h-[310px]"
+            >
+              <div
+                data-ach-banner-img
+                className="absolute inset-0 will-change-transform"
+              >
+                <Image
+                  src={achievement.landingImage}
+                  alt={achievement.landingAlt[locale]}
+                  fill
+                  sizes="(max-width: 1200px) 100vw, 1160px"
+                  priority={achievement.indexNumber === 1}
+                  className="object-cover object-center"
+                />
+              </div>
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-lightblue"
@@ -132,6 +236,7 @@ export function AchievementPanel({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={EXPAND_TRANSITION}
+            onAnimationComplete={() => ScrollTrigger.refresh()}
             className="overflow-hidden"
           >
             <div className="px-5 pt-1 pb-10 sm:px-10 sm:pb-14 lg:px-12 lg:pb-16">
@@ -149,12 +254,14 @@ export function AchievementPanel({
                   return (
                     <div
                       key={row.id}
+                      data-ach-row
                       className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-10 lg:gap-14"
                     >
                       {/* Media column */}
                       {row.media.length > 0 && (
                         <div
-                          className={`flex flex-col items-center justify-center gap-4 ${
+                          data-ach-media
+                          className={`flex flex-col items-center justify-center gap-4 will-change-transform ${
                             isMediaRight ? "md:order-2" : "md:order-1"
                           }`}
                         >
@@ -184,7 +291,8 @@ export function AchievementPanel({
 
                       {/* Copy + action pills column */}
                       <div
-                        className={`space-y-5 ${
+                        data-ach-copy
+                        className={`space-y-5 will-change-transform ${
                           isMediaRight ? "md:order-1" : "md:order-2"
                         }`}
                       >

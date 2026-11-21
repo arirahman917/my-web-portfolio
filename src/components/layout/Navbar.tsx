@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { NAV_COPY, NAV_LINKS } from "@/data/navigation";
+import type { CvOption } from "@/data/types";
+import { ScrollSmoother, scrollSmoothTo } from "@/components/motion/gsapConfig";
 import { Logo } from "./Logo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { CvDropdown } from "./CvDropdown";
@@ -47,14 +50,19 @@ function SocialIcon({ socialKey }: { socialKey: string }) {
   }
 }
 
+interface NavbarProps {
+  cvOptions?: CvOption[];
+}
+
 /**
  * Global Navbar shell (Phase 2 scaffold).
  * Full styling, scroll-contrast adaptation, and staggered menu polish follow in Phase 3 (`utils`).
  */
-export function Navbar() {
+export function Navbar({ cvOptions = [] }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCloseDestroyed, setIsCloseDestroyed] = useState(false);
   const { locale } = useLanguage();
+  const pathname = usePathname();
 
   const openMenu = () => {
     setIsCloseDestroyed(false);
@@ -65,6 +73,33 @@ export function Navbar() {
     setIsCloseDestroyed(true);
     setIsOpen(false);
   };
+
+  const handleNavLinkClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    setIsOpen(false);
+    const hashIndex = href.indexOf("#");
+    if (hashIndex !== -1 && pathname === "/") {
+      const targetSelector = href.slice(hashIndex);
+      if (document.querySelector(targetSelector)) {
+        event.preventDefault();
+        ScrollSmoother.get()?.paused(false);
+        window.history.replaceState(null, "", href);
+        window.requestAnimationFrame(() => {
+          scrollSmoothTo(targetSelector);
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const smoother = ScrollSmoother.get();
+    smoother?.paused(isOpen);
+    return () => {
+      ScrollSmoother.get()?.paused(false);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -137,7 +172,7 @@ export function Navbar() {
                 <Link
                   key={item.key}
                   href={item.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={(event) => handleNavLinkClick(event, item.href)}
                   className="group inline-flex text-3xl font-bold tracking-tight text-white sm:text-5xl"
                 >
                   <RollingText text={item.label[locale]} />
@@ -167,7 +202,11 @@ export function Navbar() {
               </div>
 
               <div className="justify-self-center sm:justify-self-end">
-                <CvDropdown direction="up" labelVariant="navbar" />
+                <CvDropdown
+                  cvOptions={cvOptions}
+                  direction="up"
+                  labelVariant="navbar"
+                />
               </div>
             </div>
       </div>

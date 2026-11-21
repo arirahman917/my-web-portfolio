@@ -15,7 +15,6 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
     background-color: var(--color-primary-black);
     color: var(--color-white);
   }

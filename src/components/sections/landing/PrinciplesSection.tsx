@@ -35,7 +35,7 @@ function PrincipleCard({ item, index, locale }: PrincipleCardProps) {
       data-principle-card={index}
       className={cn(
         "relative w-full border-t border-white/75 motion-safe:md:absolute motion-safe:md:inset-x-0 motion-safe:md:top-0 motion-safe:md:will-change-transform",
-        index > 0 && "motion-safe:md:translate-y-[100dvh]",
+        index > 0 && "motion-safe:md:top-full",
         zIndexClass
       )}
     >
@@ -257,7 +257,7 @@ function usePrinciplesMotion(refs: PrinciplesMotionRefs, locale: Locale) {
               start: "top top",
               end: () =>
                 `+=${Math.round(window.innerHeight * (isDesktop ? 2.8 : 2.3))}`,
-              scrub: 0.35,
+              scrub: 0.1,
               onRefreshInit: () => {
                 metrics = getMetrics();
               },

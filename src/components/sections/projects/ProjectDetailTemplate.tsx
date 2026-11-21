@@ -7,6 +7,7 @@ import {
   gsap,
   ScrollTrigger,
   registerGsapPlugins,
+  scrollSmoothTo,
   useGSAP,
 } from "@/components/motion/gsapConfig";
 import { ProjectHeroHeader } from "./ProjectHeroHeader";
@@ -19,43 +20,23 @@ interface ProjectDetailTemplateProps {
 
 /**
  * Shared Case Study Template for `/projects/{kasir,landeuh,ais,webgis}`.
- * Coordinates scroll-triggered section tracking, ScrollToPlugin smooth anchor jumps,
- * and sticky `ProjectSubNav` elevation up to the Footer.
+ * Coordinates scroll-triggered section tracking, smooth `ScrollSmoother` anchor jumps,
+ * pinned `ProjectSubNav` up to the Footer, and GPU parallax across hero, mockup, and results.
  */
 export function ProjectDetailTemplate({ project }: ProjectDetailTemplateProps) {
   const rootRef = useRef<HTMLElement>(null);
-  const subNavSentinelRef = useRef<HTMLDivElement>(null);
   const subNavStickyRef = useRef<HTMLDivElement>(null);
 
   const [activeSectionId, setActiveSectionId] = useState<string>("");
   const [isSubNavStuck, setIsSubNavStuck] = useState<boolean>(false);
 
   const scrollToSection = useCallback((sectionId: string) => {
-    const targetEl = document.getElementById(sectionId);
-    if (!targetEl) return;
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
     const isDesktop = window.innerWidth >= 1024;
     const stickyTop = isDesktop ? 20 : 76;
     const navHeight = subNavStickyRef.current?.offsetHeight ?? 52;
     const offsetY = stickyTop + navHeight + 28;
 
-    if (prefersReducedMotion) {
-      const targetTop =
-        targetEl.getBoundingClientRect().top + window.scrollY - offsetY;
-      window.scrollTo({ top: Math.max(0, targetTop), behavior: "auto" });
-      return;
-    }
-
-    registerGsapPlugins();
-    gsap.to(window, {
-      duration: 0.75,
-      ease: "power3.inOut",
-      scrollTo: { y: targetEl, offsetY, autoKill: true },
-    });
+    scrollSmoothTo(`#${sectionId}`, { offsetY });
   }, []);
 
   useGSAP(
@@ -63,21 +44,21 @@ export function ProjectDetailTemplate({ project }: ProjectDetailTemplateProps) {
       registerGsapPlugins();
 
       const rootEl = rootRef.current;
-      const sentinelEl = subNavSentinelRef.current;
-      if (!rootEl || !sentinelEl) return;
+      const subNavEl = subNavStickyRef.current;
+      if (!rootEl || !subNavEl) return;
 
       const getStickyTop = () => (window.innerWidth >= 1024 ? 20 : 76);
 
       const stickyTrigger = ScrollTrigger.create({
-        trigger: sentinelEl,
+        trigger: subNavEl,
         start: () => `top ${getStickyTop()}px`,
         endTrigger: rootEl,
-        end: "bottom top",
+        end: () =>
+          `bottom ${getStickyTop() + (subNavEl.offsetHeight || 52) + 80}px`,
+        pin: subNavEl,
+        pinSpacing: false,
         invalidateOnRefresh: true,
-        onEnter: () => setIsSubNavStuck(true),
-        onLeaveBack: () => setIsSubNavStuck(false),
-        onLeave: () => setIsSubNavStuck(false),
-        onEnterBack: () => setIsSubNavStuck(true),
+        onToggle: (self) => setIsSubNavStuck(self.isActive),
       });
 
       const sectionIds = PROJECT_SHARED_COPY.sectionNav.map((item) => item.id);
@@ -92,6 +73,123 @@ export function ProjectDetailTemplate({ project }: ProjectDetailTemplateProps) {
             index === 0 ? () => setActiveSectionId("") : undefined,
         })
       );
+
+      const headerEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-hero-header]"
+      );
+      const coverEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-cover]"
+      );
+      if (headerEl && coverEl) {
+        gsap.fromTo(
+          coverEl,
+          { yPercent: -5, scale: 1.12 },
+          {
+            yPercent: 8,
+            scale: 1.12,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: headerEl,
+              start: "top top",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
+
+      const mockupWrapEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-mockup-wrap]"
+      );
+      const mockupEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-mockup]"
+      );
+      const glowEl = rootEl.querySelector<HTMLElement>("[data-project-glow]");
+      if (mockupWrapEl && mockupEl) {
+        gsap.fromTo(
+          mockupEl,
+          { y: 24 },
+          {
+            y: -24,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: mockupWrapEl,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
+      if (mockupWrapEl && glowEl) {
+        gsap.fromTo(
+          glowEl,
+          { y: -16 },
+          {
+            y: 16,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: mockupWrapEl,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
+
+      const resultCardEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-result-card]"
+      );
+      const resultBgEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-result-bg]"
+      );
+      const resultObjectEl = rootEl.querySelector<HTMLElement>(
+        "[data-project-result-object]"
+      );
+      if (resultCardEl && resultBgEl) {
+        gsap.fromTo(
+          resultBgEl,
+          { yPercent: -5, scale: 1.1 },
+          {
+            yPercent: 5,
+            scale: 1.1,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: resultCardEl,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
+      if (resultCardEl && resultObjectEl) {
+        gsap.fromTo(
+          resultObjectEl,
+          { y: 22 },
+          {
+            y: -22,
+            ease: "none",
+            force3D: true,
+            scrollTrigger: {
+              trigger: resultCardEl,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          }
+        );
+      }
 
       const mm = gsap.matchMedia();
       mm.add(
@@ -110,6 +208,7 @@ export function ProjectDetailTemplate({ project }: ProjectDetailTemplateProps) {
               opacity: 0,
               duration: 0.6,
               ease: "power2.out",
+              force3D: true,
               clearProps: "transform,opacity",
               scrollTrigger: {
                 trigger: node,
@@ -139,17 +238,14 @@ export function ProjectDetailTemplate({ project }: ProjectDetailTemplateProps) {
 
       {/* Sticky Case Study Scope: stops cleanly at the bottom of `<article>` right above Footer */}
       <div className="relative mx-auto mt-8 max-w-[1440px] px-6 pb-24 sm:mt-10 sm:px-10 sm:pb-32">
-        <div ref={subNavSentinelRef} aria-hidden="true" className="h-px w-full" />
-
-        <div
-          ref={subNavStickyRef}
-          className="sticky top-[76px] z-30 mx-auto w-fit max-w-full lg:top-5"
-        >
-          <ProjectSubNav
-            activeSectionId={activeSectionId}
-            isStuck={isSubNavStuck}
-            onNavigate={scrollToSection}
-          />
+        <div ref={subNavStickyRef} className="relative z-30 w-full">
+          <div className="mx-auto w-fit max-w-full">
+            <ProjectSubNav
+              activeSectionId={activeSectionId}
+              isStuck={isSubNavStuck}
+              onNavigate={scrollToSection}
+            />
+          </div>
         </div>
 
         <ProjectNarrativeSections project={project} />

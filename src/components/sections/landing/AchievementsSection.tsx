@@ -24,6 +24,7 @@ interface CardSlotLayout {
   desktopPositionClass: string;
   imagePositionClass: string;
   entryNormalizedTime: number;
+  parallaxDeltaY: number;
 }
 
 /**
@@ -38,24 +39,28 @@ const CARD_LAYOUT: Record<AchievementSlug, CardSlotLayout> = {
     desktopPositionClass: "lg:top-0 lg:left-[6.8%]",
     imagePositionClass: "object-center",
     entryNormalizedTime: 0.0,
+    parallaxDeltaY: 16,
   },
   ifest: {
     desktopPositionClass:
       "lg:top-[calc(var(--ach-card-h)*1.145)] lg:right-[6.4%]",
     imagePositionClass: "object-center",
     entryNormalizedTime: 0.19,
+    parallaxDeltaY: -22,
   },
   jurnal: {
     desktopPositionClass:
       "lg:top-[calc(var(--ach-card-h)*1.923)] lg:left-[17%]",
     imagePositionClass: "object-top",
     entryNormalizedTime: 0.35,
+    parallaxDeltaY: 18,
   },
   pelita: {
     desktopPositionClass:
       "lg:top-[calc(var(--ach-card-h)*2.978)] lg:right-[13.9%]",
     imagePositionClass: "object-center",
     entryNormalizedTime: 0.54,
+    parallaxDeltaY: -24,
   },
 };
 
@@ -110,12 +115,12 @@ function useAchievementsMotion(
   sectionRef: RefObject<HTMLElement | null>,
   viewportRef: RefObject<HTMLDivElement | null>,
   trackRef: RefObject<HTMLDivElement | null>,
+  headingWrapRef: RefObject<HTMLDivElement | null>,
   ctaRef: RefObject<HTMLDivElement | null>
 ) {
   useGSAP(
     () => {
       registerGsapPlugins();
-      ScrollTrigger.config({ ignoreMobileResize: true });
 
       const sectionEl = sectionRef.current;
       const viewportEl = viewportRef.current;
@@ -131,7 +136,13 @@ function useAchievementsMotion(
           isCompact: "(max-width: 1023px)",
         },
         (context) => {
-          const { isDesktop } = context.conditions ?? {};
+          const { isDesktop, isCompact } = context.conditions ?? {};
+          const cards = gsap.utils.toArray<HTMLElement>(
+            "[data-achievement-card]",
+            trackEl
+          );
+
+          if (!isDesktop && !isCompact) return;
 
           gsap.set(ctaEl, { autoAlpha: 0 });
           const revealCta = () => {
@@ -153,7 +164,7 @@ function useAchievementsMotion(
 
           const ctaRevealTrigger = ScrollTrigger.create({
             trigger: sectionEl,
-            start: isDesktop ? "top 2%" : "top 15%",
+            start: isDesktop ? "top 4%" : "top 18%",
             end: "bottom top",
             onEnter: revealCta,
             onEnterBack: revealCta,
@@ -163,22 +174,17 @@ function useAchievementsMotion(
             gsap.set(ctaEl, { autoAlpha: 1 });
           }
 
-          const cards = gsap.utils.toArray<HTMLElement>(
-            "[data-achievement-card]",
-            trackEl
-          );
-
           if (isDesktop && cards.length > 0) {
-            const getStartY = () => viewportEl.clientHeight + 32;
+            const getStartY = () => viewportEl.clientHeight + 36;
             const getEndY = () => {
               const viewportH = viewportEl.clientHeight;
               const trackH = trackEl.offsetHeight;
-              return Math.min(-(trackH - viewportH * 0.56), -trackH * 0.65);
+              return Math.min(-(trackH - viewportH * 0.44), -trackH * 0.68);
             };
             const getScrollDistance = () => {
               const travel = getStartY() - getEndY();
               return Math.round(
-                Math.max(viewportEl.clientHeight * 1.9, travel * 1.2)
+                Math.max(viewportEl.clientHeight * 2.35, travel * 1.32)
               );
             };
 
@@ -191,49 +197,68 @@ function useAchievementsMotion(
                 invalidateOnRefresh: true,
                 start: "top top",
                 end: () => `+=${getScrollDistance()}`,
-                scrub: 0.75,
-                onToggle: (self) => {
-                  trackEl.style.willChange = self.isActive
-                    ? "transform"
-                    : "auto";
-                },
+                scrub: 0.15,
               },
             });
 
             scrollTl.fromTo(
               trackEl,
               { y: getStartY },
-              { y: getEndY, ease: "none", duration: 1 },
+              { y: getEndY, ease: "none", duration: 1, force3D: true },
               0
             );
 
+            if (headingWrapRef.current) {
+              scrollTl.fromTo(
+                headingWrapRef.current,
+                { y: 12, scale: 0.98 },
+                { y: -14, scale: 1.02, ease: "none", duration: 1, force3D: true },
+                0
+              );
+            }
+
             cards.forEach((cardEl) => {
               const slug = cardEl.dataset.slug as AchievementSlug | undefined;
-              const entryTime = slug
-                ? (CARD_LAYOUT[slug]?.entryNormalizedTime ?? 0)
-                : 0;
+              const layout = slug ? CARD_LAYOUT[slug] : undefined;
+              const entryTime = layout?.entryNormalizedTime ?? 0;
+              const deltaY = layout?.parallaxDeltaY ?? 0;
 
               scrollTl.fromTo(
                 cardEl,
-                { autoAlpha: 0, y: 28 },
+                { autoAlpha: 0, y: 34 },
                 {
                   autoAlpha: 1,
                   y: 0,
                   ease: "power2.out",
                   duration: 0.14,
+                  force3D: true,
                 },
                 entryTime
               );
+
+              // Subtle per-card differential parallax across its visible glide
+              if (deltaY !== 0) {
+                scrollTl.to(
+                  cardEl,
+                  {
+                    y: deltaY,
+                    ease: "none",
+                    duration: Math.max(0.2, 0.85 - entryTime),
+                    force3D: true,
+                    immediateRender: false,
+                  },
+                  entryTime + 0.14
+                );
+              }
             });
 
             return () => {
               ctaRevealTrigger.kill();
-              trackEl.style.willChange = "";
             };
           }
 
-          if (cards.length > 0) {
-            gsap.set(cards, { y: 32, autoAlpha: 0 });
+          if (isCompact && cards.length > 0) {
+            gsap.set(cards, { y: 32, autoAlpha: 0, force3D: true });
             ScrollTrigger.batch(cards, {
               start: "top 88%",
               once: true,
@@ -244,6 +269,7 @@ function useAchievementsMotion(
                   duration: 0.6,
                   stagger: 0.12,
                   ease: "power3.out",
+                  force3D: true,
                   overwrite: "auto",
                   clearProps: "transform,opacity,visibility",
                 });
@@ -313,7 +339,7 @@ function AchievementCard({
         className={cn("object-cover select-none", layout.imagePositionClass)}
       />
 
-      <figcaption className="absolute inset-x-2 bottom-2 z-10 rounded-[5px] bg-[#3A3A3A]/[0.48] px-3.5 py-2.5 text-center text-lightblue backdrop-blur-md [-webkit-backdrop-filter:blur(12px)] sm:inset-x-2.5 sm:bottom-2.5 sm:px-4 sm:py-3">
+      <figcaption className="absolute inset-x-2 bottom-2 z-10 transform-gpu rounded-[5px] bg-[#22283A]/78 px-3.5 py-2.5 text-center text-lightblue backdrop-blur-[8px] [-webkit-backdrop-filter:blur(8px)] sm:inset-x-2.5 sm:bottom-2.5 sm:px-4 sm:py-3">
         <p className="text-xs leading-[1.35] [text-shadow:0_1px_2px_rgba(8,11,24,0.3)] sm:text-[0.8125rem] lg:text-[clamp(0.75rem,0.92vw,0.875rem)]">
           <span className="block font-normal">
             <RichText segments={line1Segments} />
@@ -333,8 +359,8 @@ function AchievementCard({
  * Achievements Showcase (`#achievements`) matching `assets/uiux/landingpage/achievements.png`
  * and `achievements-scroll.png`.
  * Renders on the shared seamless blue backdrop (`AchievementsOrganizationsBackdrop`), locks the
- * full-viewport stage on desktop scroll, fades in the fixed bottom-center Explore CTA once full,
- * and scrolls 4 staggered cards from bottom to top.
+ * full-viewport stage on desktop scroll, fades in the bottom-center Explore CTA,
+ * and scrolls 4 staggered cards upward with layered parallax.
  */
 export function AchievementsSection() {
   const { locale } = useLanguage();
@@ -342,9 +368,10 @@ export function AchievementsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const headingWrapRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
 
-  useAchievementsMotion(sectionRef, viewportRef, trackRef, ctaRef);
+  useAchievementsMotion(sectionRef, viewportRef, trackRef, headingWrapRef, ctaRef);
 
   const exploreLabel = ACHIEVEMENTS_COPY.landingExploreCta[locale].replace(
     /\s*↗$/,
@@ -363,7 +390,10 @@ export function AchievementsSection() {
         className="relative w-full bg-transparent px-5 py-16 sm:px-8 sm:py-20 lg:h-dvh lg:overflow-clip lg:px-0 lg:py-0"
       >
         {/* Centered section heading */}
-        <div className="relative z-10 mb-10 flex justify-center sm:mb-12 lg:pointer-events-none lg:absolute lg:inset-0 lg:mb-0 lg:items-center lg:px-6">
+        <div
+          ref={headingWrapRef}
+          className="relative z-10 mb-10 flex justify-center sm:mb-12 lg:pointer-events-none lg:absolute lg:inset-0 lg:mb-0 lg:items-center lg:px-6"
+        >
           <h2
             id="achievements-heading"
             className="text-center text-[clamp(1.375rem,2.36vw,2.25rem)] leading-[1.15] font-medium tracking-[0.01em] text-lightblue uppercase select-none"
@@ -375,7 +405,7 @@ export function AchievementsSection() {
         {/* Staggered floating achievement cards */}
         <div
           ref={trackRef}
-          className="relative z-20 mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 [--ach-card-h:calc(min(100vw,1440px)*0.31*1239/1600)] md:grid-cols-2 md:gap-x-7 md:gap-y-10 lg:block lg:h-[calc(var(--ach-card-h)*3.978)] lg:translate-y-[100dvh]"
+          className="relative z-20 mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 [--ach-card-h:calc(min(100vw,1440px)*0.31*1239/1600)] md:grid-cols-2 md:gap-x-7 md:gap-y-10 lg:block lg:h-[calc(var(--ach-card-h)*3.978)] lg:will-change-transform"
         >
           {ACHIEVEMENTS.map((item, index) => (
             <AchievementCard
@@ -387,14 +417,14 @@ export function AchievementsSection() {
           ))}
         </div>
 
-        {/* Fixed bottom-center CTA inside this section; fades in when full layout enters view (no hover) */}
+        {/* Explore CTA: in-flow on mobile/tablet so it works reliably with ScrollSmoother, anchored bottom-center on desktop */}
         <div
           ref={ctaRef}
-          className="pointer-events-none sticky bottom-6 z-30 mt-10 flex justify-center pb-[env(safe-area-inset-bottom)] lg:absolute lg:inset-x-0 lg:bottom-8 lg:mt-0 lg:pb-0"
+          className="pointer-events-none relative z-30 mt-10 flex justify-center lg:absolute lg:inset-x-0 lg:bottom-8 lg:mt-0"
         >
           <Link
             href="/achievements"
-            className="pointer-events-auto inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#3A3A3A]/70 px-6 py-2.5 text-sm font-medium tracking-[0.01em] whitespace-nowrap text-lightblue backdrop-blur-md [-webkit-backdrop-filter:blur(12px)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-black lg:bg-white/[0.46]"
+            className="pointer-events-auto inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#3A3A3A]/75 px-6 py-2.5 text-sm font-medium tracking-[0.01em] whitespace-nowrap text-lightblue backdrop-blur-[8px] [-webkit-backdrop-filter:blur(8px)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-primary-black lg:bg-white/[0.46]"
           >
             <span>{exploreLabel}</span>
             <ExploreArrowIcon />

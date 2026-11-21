@@ -24,7 +24,8 @@
 - `src/app/achievements/page.tsx` — Consolidated 4-achievement detail page.
 - `src/context/LanguageContext.tsx` — `id` | `en` state via `useSyncExternalStore` + `localStorage` (`porto_lang`).
 - `src/components/motion/MotionProvider.tsx` — Framer Motion `LazyMotion` + `domAnimation` + `MotionConfig reducedMotion="user"`.
-- `src/components/motion/gsapConfig.ts` — Client-only GSAP + `ScrollTrigger` + `useGSAP` registration helper.
+- `src/components/motion/SmoothScrollProvider.tsx` — Global GSAP `ScrollSmoother` wrapper across all routes (`/` + `/projects/*` + `/achievements`) with route-change/hash sync.
+- `src/components/motion/gsapConfig.ts` — Client-only GSAP + `ScrollTrigger` + `ScrollToPlugin` + `ScrollSmoother` + `useGSAP` registration and `scrollSmoothTo` helper.
 - `src/components/ui/{RichText,ActionPill,GlassBadge}.tsx` — Safe `<em>` segment renderer & reusable pill primitives.
 - `src/components/layout/{Logo,Navbar,Footer,LanguageSwitcher,CvDropdown}.tsx` — Global layout shells.
 - `src/components/sections/landing/*.tsx` — 7 landing section scaffolds (`HeroSection`, `TechStackSection`, `ProjectsSection`, `AchievementsSection`, `OrganizationsSection`, `AboutMeSection`, `PrinciplesSection`).

@@ -23,12 +23,19 @@ export interface NavLinkItem {
   href: string;
 }
 
-export interface CvOption {
+export interface CvVariant {
   key: string;
+  langCode: "ID" | "EN" | "PDF";
   label: BilingualText;
   href: string;
   fileName: string;
-  isAvailable: boolean;
+}
+
+export interface CvOption {
+  key: string;
+  folderName: string;
+  label: string;
+  variants: CvVariant[];
 }
 
 export interface TechStackCardData {
@@ -41,6 +48,12 @@ export interface TechStackCardData {
 }
 
 export type ProjectSlug = "kasir" | "landeuh" | "ais" | "webgis";
+
+export interface ProjectPreviewVideo {
+  src: string;
+  width: number;
+  height: number;
+}
 
 export interface ProjectProcessStep {
   stepNumber: string;
@@ -58,6 +71,7 @@ export interface ProjectData {
   route: `/projects/${ProjectSlug}`;
   landingImage: string;
   landingAlt: BilingualText;
+  previewVideo: ProjectPreviewVideo;
   visitUrl: string;
   title: BilingualRichText;
   subtitle: BilingualRichText;

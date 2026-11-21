@@ -15,6 +15,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { ABOUT_ME_DATA } from "@/data/aboutme";
 import type { Locale } from "@/data/types";
 import { RichText } from "@/components/ui/RichText";
+import { gsap, registerGsapPlugins, useGSAP } from "@/components/motion/gsapConfig";
 import { cn } from "@/lib/utils";
 
 const CAROUSEL_INTERVAL_MS = 4500;
@@ -338,34 +339,39 @@ export function AboutMeSection() {
   const { locale } = useLanguage();
   const shouldReduceMotion = useHydratedReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
-  const [stickyTop, setStickyTop] = useState<number>(0);
+  const bgParallaxRef = useRef<HTMLDivElement>(null);
 
   const totalSlides = ABOUT_ME_DATA.images.length;
   const [activeIndex, setActiveIndex] = useState(0);
   const [pointerStartX, setPointerStartX] = useState<number | null>(null);
 
-  // Stick at `top: 0` when `#about-me` fits the viewport; if taller (mobile/tablet),
-  // stick at a negative `top` so it freezes only once its bottom reaches the viewport bottom.
-  useEffect(() => {
-    if (shouldReduceMotion) return;
-    const sectionEl = sectionRef.current;
-    if (!sectionEl) return;
+  useGSAP(
+    () => {
+      registerGsapPlugins();
+      const sectionEl = sectionRef.current;
+      const bgEl = bgParallaxRef.current;
+      if (!sectionEl || !bgEl) return;
 
-    const updateStickyTop = () => {
-      const nextTop = Math.min(0, window.innerHeight - sectionEl.offsetHeight);
-      setStickyTop((prev) => (Math.abs(prev - nextTop) < 1 ? prev : nextTop));
-    };
-
-    updateStickyTop();
-    const resizeObserver = new ResizeObserver(updateStickyTop);
-    resizeObserver.observe(sectionEl);
-    window.addEventListener("resize", updateStickyTop);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateStickyTop);
-    };
-  }, [shouldReduceMotion]);
+      gsap.fromTo(
+        bgEl,
+        { y: 18, scale: 1.05 },
+        {
+          y: -18,
+          scale: 1.05,
+          ease: "none",
+          force3D: true,
+          scrollTrigger: {
+            trigger: sectionEl,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+    },
+    { scope: sectionRef }
+  );
 
   const stepSlide = useCallback(
     (delta: number) => {
@@ -417,11 +423,7 @@ export function AboutMeSection() {
       id="about-me"
       aria-labelledby="about-me-heading"
       onKeyDown={handleKeyDown}
-      style={shouldReduceMotion ? undefined : { top: stickyTop }}
-      className={cn(
-        "z-10 bg-lightblue text-white md:min-h-dvh",
-        shouldReduceMotion ? "relative" : "sticky top-0"
-      )}
+      className="relative z-10 bg-lightblue text-white md:min-h-dvh"
     >
       <div
         className="flex w-full items-center bg-lightblue py-8 sm:py-10 md:min-h-dvh lg:py-[clamp(1.75rem,2.4vw,2.5rem)]"
@@ -434,18 +436,23 @@ export function AboutMeSection() {
               : { opacity: 0, y: 40, scale: 0.96 }
           }
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: 0.15 }}
           transition={{ duration: 0.92, ease: CARD_EASE }}
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           className="relative w-full overflow-hidden rounded-[24px] bg-primary-black shadow-[0_12px_32px_rgba(8,11,24,0.18)] sm:rounded-[28px] lg:min-h-[clamp(30.5rem,39.4vw,35.75rem)] lg:rounded-[34px]"
         >
-          {/* Layer 0: 3-Image Portrait Carousel (1.webp, 2.webp, 3.webp) */}
-          <CarouselBackground
-            activeIndex={activeIndex}
-            locale={locale}
-            shouldReduceMotion={shouldReduceMotion}
-          />
+          {/* Layer 0: 3-Image Portrait Carousel (1.webp, 2.webp, 3.webp) inside GSAP parallax wrapper */}
+          <div
+            ref={bgParallaxRef}
+            className="relative h-full w-full will-change-transform lg:absolute lg:inset-0"
+          >
+            <CarouselBackground
+              activeIndex={activeIndex}
+              locale={locale}
+              shouldReduceMotion={shouldReduceMotion}
+            />
+          </div>
 
           {/* Layer 1: Diagonal Blue (#1235D8/#2855FF) & Dark (#080B18) Vignettes + Radial-Black */}
           <CardAmbientVignettes shouldReduceMotion={shouldReduceMotion} />

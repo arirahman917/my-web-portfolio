@@ -15,6 +15,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { ORGANIZATIONS, ORGANIZATIONS_COPY } from "@/data/organizations";
 import type { Locale, OrganizationData } from "@/data/types";
 import { RichText } from "@/components/ui/RichText";
+import { gsap, registerGsapPlugins, useGSAP } from "@/components/motion/gsapConfig";
 import { cn } from "@/lib/utils";
 
 const LAST_EXPANDED_ORG_KEY = "porto_last_expanded_org";
@@ -731,6 +732,55 @@ function OrganizationCard({
 export function OrganizationsSection() {
   const { locale } = useLanguage();
   const shouldReduceMotion = useHydratedReducedMotion();
+  const sectionRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const deckWrapRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      registerGsapPlugins();
+
+      const sectionEl = sectionRef.current;
+      const headingEl = headingRef.current;
+      const deckWrapEl = deckWrapRef.current;
+      if (!sectionEl || !headingEl || !deckWrapEl) return;
+
+      gsap.fromTo(
+        headingEl,
+        { y: 28 },
+        {
+          y: 0,
+          ease: "none",
+          force3D: true,
+          scrollTrigger: {
+            trigger: sectionEl,
+            start: "top 92%",
+            end: "top 48%",
+            scrub: 0.12,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+
+      gsap.fromTo(
+        deckWrapEl,
+        { y: 40 },
+        {
+          y: 0,
+          ease: "none",
+          force3D: true,
+          scrollTrigger: {
+            trigger: deckWrapEl,
+            start: "top 95%",
+            end: "top 42%",
+            scrub: 0.14,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+    },
+    { scope: sectionRef }
+  );
 
   const activeOrgId = useSyncExternalStore(
     subscribeLastExpandedOrg,
@@ -796,6 +846,7 @@ export function OrganizationsSection() {
 
   return (
     <section
+      ref={sectionRef}
       id="organizations"
       aria-labelledby="organizations-heading"
       className="relative z-10 overflow-x-clip bg-transparent pt-14 pb-12 text-lightblue sm:pt-16 sm:pb-14 lg:pt-[clamp(3.25rem,3.6vw,4.25rem)] lg:pb-[clamp(2.5rem,3vw,3.5rem)]"
@@ -816,6 +867,7 @@ export function OrganizationsSection() {
 
       <div className="relative z-10 mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-[clamp(1.75rem,2.6vw,2.75rem)]">
         <h2
+          ref={headingRef}
           id="organizations-heading"
           className="text-center text-[clamp(1.375rem,2.36vw,2.25rem)] leading-[1.15] font-medium tracking-[0.01em] text-lightblue uppercase select-none"
         >
@@ -823,6 +875,7 @@ export function OrganizationsSection() {
         </h2>
 
         <div
+          ref={deckWrapRef}
           onPointerLeave={(event) => handleCardHoverLeave(null, event.pointerType)}
           className="mt-8 flex flex-col gap-3.5 sm:mt-10 sm:gap-4 lg:mt-[clamp(2.25rem,2.7vw,3.375rem)] lg:h-[clamp(29rem,34.5vw,43.875rem)] lg:flex-row lg:gap-5"
         >

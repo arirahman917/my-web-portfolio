@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { AnimatePresence, m } from "framer-motion";
+import { useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { SOCIAL_LINKS } from "@/data/links";
-import { CV_OPTIONS, NAV_COPY } from "@/data/navigation";
-import type { Locale } from "@/data/types";
+import { NAV_COPY } from "@/data/navigation";
+import type { CvOption } from "@/data/types";
 import { HeroAmbientLight } from "@/components/motion/HeroAmbientLight";
+import { gsap, registerGsapPlugins, useGSAP } from "@/components/motion/gsapConfig";
+import { CvDropdown } from "./CvDropdown";
+
+interface FooterProps {
+  cvOptions?: CvOption[];
+}
 
 /** Crisp geometric diagonal arrow matching `LET'S CONNECT ↗` in `footer.png`. */
 function ConnectArrowIcon() {
@@ -28,114 +32,49 @@ function ConnectArrowIcon() {
   );
 }
 
-function FooterCvMenu({ locale }: { locale: Locale }) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleOutsideClick(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
-  const triggerLabel = NAV_COPY.footerDownloadCvButton[locale];
-
-  return (
-    <div ref={containerRef} className="relative inline-block">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        className="inline-flex min-h-[44px] min-w-[136px] cursor-pointer items-center justify-center gap-2.5 rounded-[2px] border border-lightblue/80 bg-transparent px-4 py-1.5 text-sm font-semibold tracking-[0.01em] text-white transition-colors duration-200 hover:border-white hover:bg-lightblue/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lightblue sm:min-w-[144px] lg:min-h-[38px] lg:px-5 lg:text-[15px]"
-      >
-        <span>{triggerLabel}</span>
-        <ChevronDown
-          aria-hidden="true"
-          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-            open ? "rotate-180" : "rotate-0"
-          }`}
-        />
-      </button>
-
-      <AnimatePresence>
-        {open ? (
-          <m.div
-            role="menu"
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="
-              absolute top-full right-0 z-40 mt-3 w-[192px] rounded-none
-              border border-lightblue/50 bg-transparent px-4 py-1
-              shadow-[0_12px_30px_rgba(8,11,24,0.38)] backdrop-blur-md
-              [-webkit-backdrop-filter:blur(12px)] sm:w-[200px]
-            "
-          >
-            <div className="divide-y divide-lightblue/70">
-              {CV_OPTIONS.map((cv) => (
-                <a
-                  key={cv.key}
-                  role="menuitem"
-                  href={cv.href}
-                  download={cv.isAvailable ? cv.fileName : undefined}
-                  aria-disabled={!cv.isAvailable || undefined}
-                  title={
-                    !cv.isAvailable
-                      ? locale === "id"
-                        ? "PDF segera tersedia"
-                        : "PDF available soon"
-                      : undefined
-                  }
-                  onClick={(event) => {
-                    if (!cv.isAvailable) {
-                      event.preventDefault();
-                    }
-                    setOpen(false);
-                  }}
-                  className="flex min-h-[44px] items-center justify-center py-2.5 text-center text-[13px] font-normal tracking-[0.02em] text-lightblue transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:text-[14px]"
-                >
-                  {cv.label[locale]}
-                </a>
-              ))}
-            </div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 /**
  * Global Footer (`#footer`) matching `assets/uiux/landingpage/footer.png`.
  * Features PRD light-blue / electric-blue radial lighting on `#080B18`,
  * top row (`Github` + `Unduh CV` glassmorphic dropdown), left-aligned
- * oversized `LET'S CONNECT ↗` + email trigger, and bottom 3-column social row.
+ * oversized `LET'S CONNECT ↗` + email trigger, bottom 3-column social row,
+ * and subtle GSAP scroll-unfold parallax.
  */
-export function Footer() {
+export function Footer({ cvOptions = [] }: FooterProps) {
   const { locale } = useLanguage();
+  const footerRef = useRef<HTMLElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      registerGsapPlugins();
+
+      const footerEl = footerRef.current;
+      const innerEl = innerRef.current;
+      if (!footerEl || !innerEl) return;
+
+      gsap.fromTo(
+        innerEl,
+        { y: -36 },
+        {
+          y: 0,
+          ease: "none",
+          force3D: true,
+          scrollTrigger: {
+            trigger: footerEl,
+            start: "top bottom",
+            end: "bottom bottom",
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+    },
+    { scope: footerRef }
+  );
 
   return (
     <footer
+      ref={footerRef}
       id="footer"
       className="relative overflow-hidden bg-primary-black text-white"
     >
@@ -146,7 +85,10 @@ export function Footer() {
         Top padding clears the fixed Navbar (py-5 + 44px button ≈ 84px)
         so `Github` / `Unduh CV` never sit under the logo or hamburger.
       */}
-      <div className="relative z-10 mx-auto flex h-dvh max-h-[960px] min-h-[480px] w-full max-w-[1440px] flex-col justify-between px-6 pt-[5.75rem] pb-[clamp(1rem,3.5dvh,2.25rem)] sm:px-10 lg:px-16">
+      <div
+        ref={innerRef}
+        className="relative z-10 mx-auto flex h-dvh max-h-[960px] min-h-[480px] w-full max-w-[1440px] flex-col justify-between px-6 pt-[5.75rem] pb-[clamp(1rem,3.5dvh,2.25rem)] will-change-transform sm:px-10 lg:px-16"
+      >
         {/* Top Row: Github (left) & Unduh CV dropdown (right) */}
         <div className="flex items-center justify-between gap-4">
           <a
@@ -158,7 +100,11 @@ export function Footer() {
             Github
           </a>
 
-          <FooterCvMenu locale={locale} />
+          <CvDropdown
+            cvOptions={cvOptions}
+            direction="down"
+            labelVariant="footer"
+          />
         </div>
 
         {/* Center-Left Hero CTA: LET'S CONNECT ↗ + email */}

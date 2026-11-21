@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { MotionProvider } from "@/components/motion/MotionProvider";
+import { SmoothScrollProvider } from "@/components/motion/SmoothScrollProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Preloader } from "@/components/layout/Preloader";
+import { getCvOptions } from "@/lib/cv";
 import "./globals.css";
 
 const inter = Inter({
@@ -40,6 +42,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cvOptions = getCvOptions();
+
   return (
     <html lang="id" suppressHydrationWarning className={inter.variable}>
       <head>
@@ -49,9 +53,11 @@ export default function RootLayout({
         <LanguageProvider>
           <MotionProvider>
             <Preloader />
-            <Navbar />
-            <main>{children}</main>
-            <Footer />
+            <Navbar cvOptions={cvOptions} />
+            <SmoothScrollProvider>
+              <main>{children}</main>
+              <Footer cvOptions={cvOptions} />
+            </SmoothScrollProvider>
           </MotionProvider>
         </LanguageProvider>
       </body>

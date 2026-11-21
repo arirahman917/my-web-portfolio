@@ -28,8 +28,8 @@ export const HERO_DATA: {
     en: "Open for Internship",
   },
   availabilityPeriod: {
-    id: "Feb – Jun 2027",
-    en: "Feb – Jun 2027",
+    id: "Jan – Jun 2027",
+    en: "Jan – Jun 2027",
   },
   bottomLeftPrimary: {
     id: "BOGOR, INDONESIA",

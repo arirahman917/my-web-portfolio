@@ -1,5 +1,5 @@
 import { SOCIAL_LINKS } from "./links";
-import type { BilingualText, CvOption, NavLinkItem } from "./types";
+import type { BilingualText, NavLinkItem } from "./types";
 
 export const NAV_LINKS: NavLinkItem[] = [
   {
@@ -29,35 +29,12 @@ export const NAV_LINKS: NavLinkItem[] = [
   },
 ];
 
-export const CV_OPTIONS: CvOption[] = [
-  {
-    key: "software-engineer",
-    label: { id: "CV SOFT. ENG.", en: "CV SOFT. ENG." },
-    href: "/cv/cv-software-engineer.pdf",
-    fileName: "Ari-Rahman-CV-Software-Engineer.pdf",
-    isAvailable: true,
-  },
-  {
-    key: "frontend",
-    label: { id: "CV FRONTEND", en: "CV FRONTEND" },
-    href: "/cv/cv-frontend.pdf",
-    fileName: "Ari-Rahman-CV-Frontend.pdf",
-    isAvailable: false,
-  },
-  {
-    key: "devops",
-    label: { id: "CV DEVOPS", en: "CV DEVOPS" },
-    href: "/cv/cv-devops.pdf",
-    fileName: "Ari-Rahman-CV-DevOps.pdf",
-    isAvailable: false,
-  },
-];
-
 export const NAV_COPY: {
   openMenuAria: BilingualText;
   closeMenuAria: BilingualText;
   downloadCvButton: BilingualText;
   footerDownloadCvButton: BilingualText;
+  cvUnavailable: BilingualText;
   footerHeadline: BilingualText;
   email: string;
   socialLinks: Array<{ key: string; label: string; href: string }>;
@@ -77,6 +54,10 @@ export const NAV_COPY: {
   footerDownloadCvButton: {
     id: "Unduh CV",
     en: "Download CV",
+  },
+  cvUnavailable: {
+    id: "PDF segera tersedia",
+    en: "PDF available soon",
   },
   footerHeadline: {
     id: "LET'S CONNECT",

@@ -27,17 +27,22 @@ export function ProjectHeroHeader({
 
   return (
     <>
-      <header className="relative w-full">
+      <header data-project-hero-header className="relative w-full">
         {/* Full-bleed cover image (`xxx_LP.webp`) fading seamlessly into `#080B18` */}
         <div className="relative h-[220px] w-full overflow-hidden sm:h-[280px] lg:h-[330px]">
-          <Image
-            src={project.landingImage}
-            alt={project.landingAlt[locale]}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center select-none"
-          />
+          <div
+            data-project-cover
+            className="absolute inset-0 will-change-transform"
+          >
+            <Image
+              src={project.landingImage}
+              alt={project.landingAlt[locale]}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center select-none"
+            />
+          </div>
           <div
             aria-hidden="true"
             className="absolute inset-0 bg-linear-to-b from-[#080B18]/45 via-[#080B18]/50 to-[#080B18]"
@@ -107,16 +112,23 @@ export function ProjectHeroHeader({
       </header>
 
       {/* Centered Multi-Device Mockup Showcase (`mockup.webp`) with ambient blue glow */}
-      <div className="relative mx-auto mt-10 max-w-[960px] px-6 sm:mt-14 sm:px-10">
+      <div
+        data-project-mockup-wrap
+        className="relative mx-auto mt-10 max-w-[960px] px-6 sm:mt-14 sm:px-10"
+      >
         <div
+          data-project-glow
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-1/2 h-[118%] w-[92%] max-w-[780px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-95"
+          className="pointer-events-none absolute top-1/2 left-1/2 h-[118%] w-[92%] max-w-[780px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-95 will-change-transform"
           style={{
             background:
               "radial-gradient(ellipse 68% 60% at 50% 52%, rgba(40, 85, 255, 0.34) 0%, rgba(18, 53, 216, 0.16) 46%, rgba(8, 11, 24, 0) 76%)",
           }}
         />
-        <div className="relative z-10 mx-auto max-w-[720px]">
+        <div
+          data-project-mockup
+          className="relative z-10 mx-auto max-w-[720px] will-change-transform"
+        >
           <Image
             src={project.mockupImage}
             alt={

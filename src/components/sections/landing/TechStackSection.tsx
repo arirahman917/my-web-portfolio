@@ -83,9 +83,9 @@ const DEFAULT_VISUAL: CardVisualConfig = {
 
 /**
  * Tech Stack & Kemampuan section (`#tech-stack`) matching `assets/uiux/landingpage/techstack.png`.
- * On desktop (`>= 1024px`), scrubs all five Polaroid cards upward with alternating vertical
- * parallax (odd cards lead, even cards trail and catch up) without pinning, settling into
- * their tilted stacked arrangement as the section reaches the top of the viewport.
+ * On desktop (`>= 1024px`), pairs smoothly with `ScrollSmoother` to glide all five Polaroid cards
+ * upward with alternating vertical parallax (odd cards lead, even cards trail and catch up)
+ * before settling cleanly ahead of `ProjectsSection`.
  */
 export function TechStackSection() {
   const { locale } = useLanguage();
@@ -98,7 +98,6 @@ export function TechStackSection() {
   useGSAP(
     () => {
       registerGsapPlugins();
-      ScrollTrigger.config({ ignoreMobileResize: true });
 
       const sectionEl = sectionRef.current;
       const viewportEl = viewportRef.current;
@@ -113,121 +112,113 @@ export function TechStackSection() {
           isCompact: "(max-width: 1023px)",
         },
         (context) => {
-          const { isDesktop } = context.conditions ?? {};
-
+          const { isDesktop, isCompact } = context.conditions ?? {};
           const slots = gsap.utils.toArray<HTMLElement>(
             "[data-tech-slot]",
             cardsRowEl
           );
 
           if (isDesktop && slots.length > 0) {
-            if (headingRef.current) {
-              gsap.fromTo(
-                headingRef.current,
-                { y: 24, autoAlpha: 0 },
-                {
-                  y: 0,
-                  autoAlpha: 1,
-                  ease: "none",
-                  scrollTrigger: {
-                    trigger: sectionEl,
-                    start: "top 92%",
-                    end: "top 55%",
-                    scrub: 0.7,
-                  },
-                }
-              );
-            }
-
             const stackTl = gsap.timeline({
               scrollTrigger: {
                 trigger: sectionEl,
                 start: "top 95%",
-                end: "top 5%",
-                scrub: 0.9,
+                end: "top 16%",
+                scrub: 0.12,
                 invalidateOnRefresh: true,
-                onToggle: (self) => {
-                  slots.forEach((slotEl) => {
-                    slotEl.style.willChange = self.isActive
-                      ? "transform"
-                      : "auto";
-                  });
-                },
               },
             });
 
-            // Alternating vertical parallax matching the reference video:
-            // odd cards (1, 3, 5) lead while even cards (2, 4) trail and catch up smoothly.
-            const startYOffsets = [120, 280, 170, 330, 220];
+            if (headingRef.current) {
+              stackTl.fromTo(
+                headingRef.current,
+                { y: 34, autoAlpha: 0 },
+                {
+                  y: 0,
+                  autoAlpha: 1,
+                  duration: 0.55,
+                  ease: "power1.out",
+                  force3D: true,
+                },
+                0
+              );
+            }
+
+            // Alternating vertical parallax: odd cards (1, 3, 5) lead while even cards (2, 4) trail and catch up.
+            const startYOffsets = [105, 240, 145, 275, 180];
 
             slots.forEach((slotEl, index) => {
               const cardId = TECH_STACK_CARDS[index]?.id ?? "";
               const tilt = CARD_VISUAL_CONFIG[cardId]?.desktopTiltDeg ?? 0;
-              const startY = startYOffsets[index] ?? 180;
+              const startY = startYOffsets[index] ?? 170;
 
               stackTl.fromTo(
                 slotEl,
                 {
                   y: startY,
-                  rotation: -tilt * 0.45,
+                  rotation: -tilt * 0.42,
                 },
                 {
                   y: 0,
                   rotation: 0,
                   duration: 1,
-                  ease: "none",
+                  ease: "power1.out",
+                  force3D: true,
                 },
                 0
               );
             });
 
-            return () => {
-              slots.forEach((slotEl) => {
-                slotEl.style.willChange = "";
-              });
-            };
+            return undefined;
           }
 
-          if (headingRef.current) {
-            gsap.fromTo(
-              headingRef.current,
-              { y: 20, autoAlpha: 0 },
-              {
-                y: 0,
-                autoAlpha: 1,
-                duration: 0.65,
-                ease: "power3.out",
-                clearProps: "transform,opacity,visibility",
-                scrollTrigger: {
-                  trigger: headingRef.current,
-                  start: "top 86%",
-                  once: true,
-                },
-              }
-            );
-          }
-
-          if (slots.length > 0) {
-            gsap.set(slots, {
-              x: () => Math.round(Math.min(window.innerWidth * 0.35, 140)),
-              autoAlpha: 0,
-            });
-
-            ScrollTrigger.batch(slots, {
-              start: "top 88%",
-              once: true,
-              onEnter: (batch) => {
-                gsap.to(batch, {
-                  x: 0,
+          if (isCompact) {
+            if (headingRef.current) {
+              gsap.fromTo(
+                headingRef.current,
+                { y: 20, autoAlpha: 0 },
+                {
+                  y: 0,
                   autoAlpha: 1,
-                  duration: 0.68,
-                  stagger: 0.14,
+                  duration: 0.65,
                   ease: "power3.out",
-                  overwrite: "auto",
+                  force3D: true,
                   clearProps: "transform,opacity,visibility",
-                });
-              },
-            });
+                  scrollTrigger: {
+                    trigger: headingRef.current,
+                    start: "top 86%",
+                    once: true,
+                  },
+                }
+              );
+            }
+
+            if (slots.length > 0) {
+              gsap.set(slots, {
+                x: 36,
+                y: 34,
+                autoAlpha: 0,
+                force3D: true,
+              });
+
+              ScrollTrigger.batch(slots, {
+                start: "top 88%",
+                once: true,
+                onEnter: (batch) => {
+                  gsap.to(batch, {
+                    x: 0,
+                    y: 0,
+                    autoAlpha: 1,
+                    duration: 0.65,
+                    stagger: 0.12,
+                    ease: "power3.out",
+                    force3D: true,
+                    overwrite: "auto",
+                    clearProps: "transform,opacity,visibility",
+                  });
+                },
+              });
+            }
           }
 
           return undefined;
@@ -248,7 +239,7 @@ export function TechStackSection() {
     >
       <div
         ref={viewportRef}
-        className="w-full overflow-x-clip bg-primary-black pt-20 pb-14 sm:pt-24 sm:pb-16 lg:flex lg:h-dvh lg:min-h-[640px] lg:flex-col lg:justify-center lg:overflow-clip lg:pt-14 lg:pb-8"
+        className="w-full overflow-x-clip bg-primary-black pt-20 pb-14 sm:pt-24 sm:pb-16 lg:flex lg:h-dvh lg:min-h-[640px] lg:flex-col lg:justify-center lg:overflow-x-clip lg:pt-14 lg:pb-8"
       >
         <div className="mx-auto w-full max-w-[1440px] px-6 sm:px-10 lg:px-12">
           <h2
@@ -271,7 +262,7 @@ export function TechStackSection() {
                   key={card.id}
                   data-tech-slot
                   className={cn(
-                    "relative w-full md:w-[calc(50%-0.875rem)] md:max-w-[320px] lg:w-[21.3%] lg:max-w-none lg:shrink-0 lg:-ml-[1.55%] lg:first:ml-0",
+                    "relative w-full lg:will-change-transform md:w-[calc(50%-0.875rem)] md:max-w-[320px] lg:w-[21.3%] lg:max-w-none lg:shrink-0 lg:-ml-[1.55%] lg:first:ml-0",
                     visual.zIndexClass
                   )}
                 >
